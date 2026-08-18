@@ -29,7 +29,10 @@ class TaskRepositoryImpl implements TaskRepository {
     if (await _isOnline()) {
       try {
         await _syncLocalToRemote(userId);
-      } catch (e) {}
+        await _syncRemoteToLocal(userId);
+      } catch (e) {
+        // ignore errors during background sync
+      }
     }
     return localDataSource.getTasks(userId);
   }
@@ -38,7 +41,11 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<void> addTask(Task task) async {
     final userId = await _getUserId();
     final isOnline = await _isOnline();
-    Task taskToSave = task.copyWith(isSynced: isOnline, userId: userId);
+    Task taskToSave = task.copyWith(
+      isSynced: isOnline, 
+      userId: userId, 
+      updatedAt: DateTime.now(),
+    );
     final taskModel = TaskModel.fromEntity(taskToSave);
 
     await localDataSource.cacheTask(taskModel);
@@ -58,7 +65,11 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<void> updateTask(Task task) async {
     final userId = await _getUserId();
     final isOnline = await _isOnline();
-    Task taskToSave = task.copyWith(isSynced: isOnline, userId: userId);
+    Task taskToSave = task.copyWith(
+      isSynced: isOnline, 
+      userId: userId, 
+      updatedAt: DateTime.now(),
+    );
     final taskModel = TaskModel.fromEntity(taskToSave);
 
     await localDataSource.updateTask(taskModel);
@@ -77,12 +88,17 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> deleteTask(String id) async {
     final userId = await _getUserId();
+    // Soft delete locally
     await localDataSource.deleteTask(id);
+    
     if (await _isOnline()) {
       try {
         await remoteDataSource.deleteTask(userId, id);
-        // ignore: empty_catches
-      } catch (e) {}
+        // If remote deletion succeeds, permanently remove from local cache
+        await localDataSource.hardDeleteTask(id);
+      } catch (e) {
+        // ignore errors, sync engine will retry later
+      }
     }
   }
 
@@ -91,6 +107,7 @@ class TaskRepositoryImpl implements TaskRepository {
     final userId = await _getUserId();
     if (await _isOnline()) {
       await _syncLocalToRemote(userId);
+      await _syncRemoteToLocal(userId);
     }
   }
 
@@ -98,11 +115,29 @@ class TaskRepositoryImpl implements TaskRepository {
     final unsyncedTasks = await localDataSource.getUnsyncedTasks(userId);
     for (var taskModel in unsyncedTasks) {
       try {
-        await remoteDataSource.addTask(userId, taskModel);
-        await localDataSource.updateTask(
-          TaskModel.fromEntity(taskModel.copyWith(isSynced: true)),
-        );
-      } catch (e) {}
+        if (taskModel.isDeleted) {
+          await remoteDataSource.deleteTask(userId, taskModel.id);
+          await localDataSource.hardDeleteTask(taskModel.id);
+        } else {
+          await remoteDataSource.addTask(userId, taskModel);
+          await localDataSource.updateTask(
+            TaskModel.fromEntity(taskModel.copyWith(isSynced: true)),
+          );
+        }
+      } catch (e) {
+        // Continue attempting others if one fails
+      }
+    }
+  }
+
+  Future<void> _syncRemoteToLocal(String userId) async {
+    try {
+      final remoteTasks = await remoteDataSource.getAllTasks(userId);
+      for (var remoteTask in remoteTasks) {
+        await localDataSource.upsertTask(remoteTask);
+      }
+    } catch (e) {
+      // ignore
     }
   }
 

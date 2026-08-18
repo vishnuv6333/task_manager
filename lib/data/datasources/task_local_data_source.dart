@@ -7,7 +7,9 @@ abstract class TaskLocalDataSource {
   Future<void> cacheTask(TaskModel taskToCache);
   Future<void> updateTask(TaskModel taskToUpdate);
   Future<void> deleteTask(String id);
+  Future<void> hardDeleteTask(String id);
   Future<List<TaskModel>> getUnsyncedTasks(String userId);
+  Future<void> upsertTask(TaskModel task);
 }
 
 class TaskLocalDataSourceImpl implements TaskLocalDataSource {
@@ -28,7 +30,7 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $tableName (
@@ -39,6 +41,8 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
             dueDate TEXT,
             isCompleted INTEGER NOT NULL,
             createdAt TEXT NOT NULL,
+            updatedAt TEXT NOT NULL,
+            isDeleted INTEGER NOT NULL DEFAULT 0,
             isSynced INTEGER NOT NULL,
             userId TEXT NOT NULL
           )
@@ -47,6 +51,13 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE $tableName ADD COLUMN userId TEXT DEFAULT ""');
+        }
+        if (oldVersion < 3) {
+          // Add new columns with defaults so existing data isn't broken
+          await db.execute("ALTER TABLE $tableName ADD COLUMN updatedAt TEXT DEFAULT ''");
+          await db.execute('ALTER TABLE $tableName ADD COLUMN isDeleted INTEGER DEFAULT 0');
+          // For legacy rows, make updatedAt equal to createdAt
+          await db.execute('UPDATE $tableName SET updatedAt = createdAt WHERE updatedAt = ""');
         }
       },
     );
@@ -57,8 +68,8 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
     final dbClient = await db;
     final List<Map<String, dynamic>> maps = await dbClient.query(
       tableName,
-      where: 'userId = ?',
-      whereArgs: [userId],
+      where: 'userId = ? AND isDeleted = ?',
+      whereArgs: [userId, 0],
       orderBy: 'createdAt DESC',
     );
     return List.generate(maps.length, (i) {
@@ -88,7 +99,34 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
   }
 
   @override
+  Future<void> upsertTask(TaskModel task) async {
+    final dbClient = await db;
+    await dbClient.insert(
+      tableName,
+      task.toJson(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  @override
   Future<void> deleteTask(String id) async {
+    // Soft delete: keep the row, mark isDeleted=1 and isSynced=0 so it gets pushed.
+    final dbClient = await db;
+    await dbClient.update(
+      tableName,
+      {
+        'isDeleted': 1,
+        'isSynced': 0,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> hardDeleteTask(String id) async {
+    // Physically remove the row after syncing the deletion to the cloud
     final dbClient = await db;
     await dbClient.delete(tableName, where: 'id = ?', whereArgs: [id]);
   }

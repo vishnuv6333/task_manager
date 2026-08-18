@@ -14,42 +14,42 @@ class TaskDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final TaskController controller = Get.find<TaskController>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Details'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Get.to(() => AddEditTaskScreen(task: task));
-            },
-            tooltip: 'Edit Task',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              controller.deleteTask(task.id);
-              Get.back();
-              Get.snackbar('Deleted', 'Task has been deleted.');
-            },
-            tooltip: 'Delete Task',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Obx(() {
-                  final currentTask = controller.allTasks.firstWhere(
-                    (t) => t.id == task.id,
-                    orElse: () => task,
-                  );
+    return Obx(() {
+      final currentTask = controller.allTasks.firstWhere(
+        (t) => t.id == task.id,
+        orElse: () => task,
+      );
 
-                  return Checkbox(
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Task Details'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                Get.to(() => AddEditTaskScreen(task: currentTask));
+              },
+              tooltip: 'Edit Task',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                controller.deleteTask(currentTask.id);
+                Get.back();
+                Get.snackbar('Deleted', 'Task has been deleted.');
+              },
+              tooltip: 'Delete Task',
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Checkbox(
                     value: currentTask.isCompleted,
                     onChanged: (val) {
                       controller.toggleTaskCompletion(currentTask);
@@ -57,70 +57,76 @@ class TaskDetailsScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
-                  );
-                }),
-                const Text('Mark as Completed', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(task.title, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 16),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Icon(Icons.flag, size: 20, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  'Priority: ${task.priority}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(width: 24),
-                const Icon(Icons.cloud_sync, size: 20, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  task.isSynced ? 'Synced' : 'Offline',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (task.dueDate != null)
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 20,
-                    color: Colors.grey,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Due: ${DateFormat.yMMMd().format(task.dueDate!)}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                  const Text(
+                    'Mark as Completed',
+                    style: TextStyle(fontSize: 16),
                   ),
                 ],
               ),
-            const SizedBox(height: 32),
-            const Text(
-              'Description',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              task.description.isEmpty
-                  ? 'No description provided.'
-                  : task.description,
-              style: const TextStyle(fontSize: 16, height: 1.5),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Created on: ${DateFormat.yMMMd().add_jm().format(task.createdAt)}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                currentTask.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Icon(Icons.flag, size: 20, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Priority: ${currentTask.priority}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 24),
+                  const Icon(Icons.cloud_sync, size: 20, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    currentTask.isSynced ? 'Synced' : 'Offline',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (currentTask.dueDate != null)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Due: ${DateFormat.yMMMd().format(currentTask.dueDate!)}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 32),
+              const Text(
+                'Description',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                currentTask.description.isEmpty
+                    ? 'No description provided.'
+                    : currentTask.description,
+                style: const TextStyle(fontSize: 16, height: 1.5),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Created on: ${DateFormat.yMMMd().add_jm().format(currentTask.createdAt)}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }

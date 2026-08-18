@@ -6,6 +6,8 @@ class Task {
   final DateTime? dueDate;
   final bool isCompleted;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
   final bool isSynced;
   final String userId;
 
@@ -17,6 +19,8 @@ class Task {
     this.dueDate,
     this.isCompleted = false,
     required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
     this.isSynced = false,
     required this.userId,
   });
@@ -29,6 +33,8 @@ class Task {
     DateTime? dueDate,
     bool? isCompleted,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
     bool? isSynced,
     String? userId,
   }) {
@@ -40,6 +46,8 @@ class Task {
       dueDate: dueDate ?? this.dueDate,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       userId: userId ?? this.userId,
     );

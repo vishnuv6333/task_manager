@@ -69,6 +69,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         dueDate: _dueDate,
         isCompleted: isEdit ? widget.task!.isCompleted : false,
         createdAt: isEdit ? widget.task!.createdAt : DateTime.now(),
+        updatedAt: DateTime.now(),
         userId: isEdit ? widget.task!.userId : '',
       );
 

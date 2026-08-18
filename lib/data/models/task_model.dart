@@ -9,6 +9,8 @@ class TaskModel extends Task {
     super.dueDate,
     super.isCompleted,
     required super.createdAt,
+    required super.updatedAt,
+    super.isDeleted,
     super.isSynced,
     required super.userId,
   });
@@ -22,6 +24,8 @@ class TaskModel extends Task {
       dueDate: task.dueDate,
       isCompleted: task.isCompleted,
       createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      isDeleted: task.isDeleted,
       isSynced: task.isSynced,
       userId: task.userId,
     );
@@ -38,6 +42,8 @@ class TaskModel extends Task {
           : null,
       isCompleted: json['isCompleted'] == 1 || json['isCompleted'] == true,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : DateTime.parse(json['createdAt'] as String),
+      isDeleted: json['isDeleted'] == 1 || json['isDeleted'] == true,
       isSynced: json['isSynced'] == 1 || json['isSynced'] == true,
       userId: json['userId'] as String? ?? '',
     );
@@ -52,6 +58,8 @@ class TaskModel extends Task {
       'dueDate': dueDate?.toIso8601String(),
       'isCompleted': isCompleted ? 1 : 0,
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'isDeleted': isDeleted ? 1 : 0,
       'isSynced': isSynced ? 1 : 0,
       'userId': userId,
     };
