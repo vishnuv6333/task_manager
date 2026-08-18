@@ -1,16 +1,33 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/task_model.dart';
-import '../repositories/task_repository.dart';
+import '../../core/usecases/usecase.dart';
+import '../../domain/entities/task.dart';
+import '../../domain/usecases/get_tasks.dart';
+import '../../domain/usecases/add_task.dart';
+import '../../domain/usecases/update_task.dart';
+import '../../domain/usecases/delete_task.dart';
+import '../../domain/usecases/sync_tasks.dart';
 
 class TaskController extends GetxController {
-  final TaskRepository _repository = Get.find<TaskRepository>();
+  final GetTasks _getTasks = Get.find<GetTasks>();
+  final AddTask _addTask = Get.find<AddTask>();
+  final UpdateTask _updateTask = Get.find<UpdateTask>();
+  final DeleteTask _deleteTask = Get.find<DeleteTask>();
+  final SyncTasks _syncTasks = Get.find<SyncTasks>();
 
   var allTasks = <Task>[].obs;
   var isLoading = false.obs;
 
   var searchQuery = ''.obs;
-  var filterStatus = 'All'.obs; // 'All', 'Pending', 'Completed'
-  var sortType = 'Due Date'.obs; // 'Due Date', 'Priority'
+  var filterStatus = 'All'.obs;
+  var sortType = 'Due Date'.obs;
+
+  var isDarkMode = Get.isDarkMode.obs;
+
+  void toggleTheme() {
+    isDarkMode.value = !isDarkMode.value;
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
+  }
 
   @override
   void onInit() {
@@ -21,27 +38,27 @@ class TaskController extends GetxController {
   Future<void> fetchTasks() async {
     isLoading.value = true;
     try {
-      final tasks = await _repository.getTasks();
+      final tasks = await _getTasks.call(NoParams());
       allTasks.assignAll(tasks);
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch tasks: \$e');
+      Get.snackbar('Error', 'Failed to fetch tasks: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> addTask(Task task) async {
-    await _repository.addTask(task);
+    await _addTask.call(task);
     await fetchTasks();
   }
 
   Future<void> updateTask(Task task) async {
-    await _repository.updateTask(task);
+    await _updateTask.call(task);
     await fetchTasks();
   }
 
   Future<void> deleteTask(String id) async {
-    await _repository.deleteTask(id);
+    await _deleteTask.call(id);
     await fetchTasks();
   }
 
@@ -53,7 +70,7 @@ class TaskController extends GetxController {
   Future<void> syncTasks() async {
     isLoading.value = true;
     try {
-      await _repository.syncPendingTasks();
+      await _syncTasks.call(NoParams());
       await fetchTasks();
     } finally {
       isLoading.value = false;
@@ -63,26 +80,26 @@ class TaskController extends GetxController {
   List<Task> get filteredAndSortedTasks {
     List<Task> result = allTasks.toList();
 
-    // 1. Search Filter
     if (searchQuery.value.isNotEmpty) {
       result = result
-          .where((task) =>
-              task.title.toLowerCase().contains(searchQuery.value.toLowerCase()))
+          .where(
+            (task) => task.title.toLowerCase().contains(
+              searchQuery.value.toLowerCase(),
+            ),
+          )
           .toList();
     }
 
-    // 2. Status Filter
     if (filterStatus.value == 'Completed') {
       result = result.where((task) => task.isCompleted).toList();
     } else if (filterStatus.value == 'Pending') {
       result = result.where((task) => !task.isCompleted).toList();
     }
 
-    // 3. Sort
     if (sortType.value == 'Due Date') {
       result.sort((a, b) {
         if (a.dueDate == null && b.dueDate == null) return 0;
-        if (a.dueDate == null) return 1; // nulls last
+        if (a.dueDate == null) return 1;
         if (b.dueDate == null) return -1;
         return a.dueDate!.compareTo(b.dueDate!);
       });

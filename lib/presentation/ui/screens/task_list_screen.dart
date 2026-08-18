@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../controllers/task_controller.dart';
+import '../../controllers/auth_controller.dart';
 import '../widgets/task_tile.dart';
 import 'add_edit_task_screen.dart';
 import 'task_details_screen.dart';
@@ -16,16 +18,31 @@ class TaskListScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('My Tasks'),
         actions: [
+          Obx(
+            () => IconButton(
+              icon: Icon(
+                controller.isDarkMode.value
+                    ? Icons.light_mode
+                    : Icons.dark_mode,
+              ),
+              onPressed: () => controller.toggleTheme(),
+              tooltip: 'Toggle Theme',
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.sync),
             onPressed: () => controller.syncTasks(),
             tooltip: 'Sync with Cloud',
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => Get.find<AuthController>().logout(),
+            tooltip: 'Logout',
+          ),
         ],
       ),
       body: Column(
         children: [
-          // Search and Filter Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -41,7 +58,6 @@ class TaskListScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Filter Status
                     Obx(
                       () => DropdownButton<String>(
                         value: controller.filterStatus.value,
@@ -58,25 +74,32 @@ class TaskListScreen extends StatelessWidget {
                         },
                       ),
                     ),
+                    const SizedBox(height: 8),
                     // Sort Type
                     Obx(
-                      () => DropdownButton<String>(
-                        value: controller.sortType.value,
-                        underline: const SizedBox(),
-                        icon: const Icon(Icons.sort),
-                        items: ['Due Date', 'Priority']
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text('Sort: \$e'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            controller.sortType.value = val;
-                          }
-                        },
+                      () => Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          const Icon(Icons.sort, size: 18, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('Due Date'),
+                            selected: controller.sortType.value == 'Due Date',
+                            onSelected: (selected) {
+                              if (selected) controller.sortType.value = 'Due Date';
+                            },
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('Priority'),
+                            selected: controller.sortType.value == 'Priority',
+                            onSelected: (selected) {
+                              if (selected) controller.sortType.value = 'Priority';
+                            },
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -85,11 +108,38 @@ class TaskListScreen extends StatelessWidget {
             ),
           ),
 
-          // Task List
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value && controller.allTasks.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  itemCount: 5,
+                  itemBuilder: (context, index) {
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Shimmer.fromColors(
+                        baseColor: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade300,
+                        highlightColor: isDark
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade100,
+                        child: Container(
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
               }
 
               final tasks = controller.filteredAndSortedTasks;
@@ -117,7 +167,7 @@ class TaskListScreen extends StatelessWidget {
                       },
                       onDelete: () {
                         controller.deleteTask(task.id);
-                        Get.snackbar('Deleted', '\${task.title} deleted.');
+                        Get.snackbar('Deleted', '${task.title} deleted.');
                       },
                     );
                   },

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
-import '../../models/task_model.dart';
+import '../../../domain/entities/task.dart';
 import '../../controllers/task_controller.dart';
 
 class AddEditTaskScreen extends StatefulWidget {
-  final Task? task; // null for Add, provide Task for Edit
+  final Task? task;
 
   const AddEditTaskScreen({super.key, this.task});
 
@@ -69,7 +69,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         dueDate: _dueDate,
         isCompleted: isEdit ? widget.task!.isCompleted : false,
         createdAt: isEdit ? widget.task!.createdAt : DateTime.now(),
-        // isSynced will be handled by repository
+        userId: isEdit ? widget.task!.userId : '',
       );
 
       if (isEdit) {
@@ -78,7 +78,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         _controller.addTask(task);
       }
 
-      Get.back(); // Close screen
+      Get.back();
     }
   }
 

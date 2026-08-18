@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../models/task_model.dart';
+import 'package:intl/intl.dart';
+import '../../../domain/entities/task.dart';
 import '../../controllers/task_controller.dart';
 import 'add_edit_task_screen.dart';
 
@@ -27,7 +28,6 @@ class TaskDetailsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
-              // Confirm delete dialog could be added here
               controller.deleteTask(task.id);
               Get.back();
               Get.snackbar('Deleted', 'Task has been deleted.');
@@ -44,10 +44,6 @@ class TaskDetailsScreen extends StatelessWidget {
             Row(
               children: [
                 Obx(() {
-                  // We need to fetch the updated task if it was modified.
-                  // For simplicity, we can rely on the fact that GetX state updates
-                  // will rebuild if we listen to the specific item, but we are passing static task.
-                  // To fix this, we can find the task from the controller.
                   final currentTask = controller.allTasks.firstWhere(
                     (t) => t.id == task.id,
                     orElse: () => task,
@@ -69,12 +65,13 @@ class TaskDetailsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(task.title, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
-            Row(
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Icon(Icons.flag, size: 20, color: Colors.grey),
                 const SizedBox(width: 8),
                 Text(
-                  'Priority: \${task.priority}',
+                  'Priority: ${task.priority}',
                   style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(width: 24),
@@ -96,9 +93,11 @@ class TaskDetailsScreen extends StatelessWidget {
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Due: \${DateFormat.yMMMd().format(task.dueDate!)}',
-                    style: const TextStyle(fontSize: 16),
+                  Expanded(
+                    child: Text(
+                      'Due: ${DateFormat.yMMMd().format(task.dueDate!)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                 ],
               ),
@@ -116,7 +115,7 @@ class TaskDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Text(
-              'Created on: \${DateFormat.yMMMd().add_jm().format(task.createdAt)}',
+              'Created on: ${DateFormat.yMMMd().add_jm().format(task.createdAt)}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
